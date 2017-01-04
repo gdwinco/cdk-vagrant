@@ -1,5 +1,7 @@
 # cdk-vagrant
-A modified Vagrantfile for the OpenShift CDK. It uses the CentOS7 images for Jenkins / Slaves because they use more up-to-date plugins than the shipped RHEL7 image (namely, fixes to address https://github.com/fabric8io/openshift-jenkins-sync-plugin/issues/85) - This was easier than getting Jenkins to update shedloads of plugins at runtime. When the update happens, I'll update the Vagrantfile.
+A modified Vagrantfile for the OpenShift CDK. Assumes you have the latest Container Development Kit image from https://developers.redhat.com/
+
+It uses the CentOS7 images for Jenkins / Slaves because they use more up-to-date plugins than the shipped RHEL7 image (namely, fixes to address https://github.com/fabric8io/openshift-jenkins-sync-plugin/issues/85) - This was easier than getting Jenkins to update shedloads of plugins at runtime. When the update happens, I'll update the Vagrantfile.
 
 # Useage
 
