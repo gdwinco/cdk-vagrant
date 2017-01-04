@@ -104,13 +104,13 @@ Vagrant.configure(2) do |config|
     echo "Creating user and assigning cluster-admin role"
     echo
     sudo su -
-  	htpasswd -b /var/lib/openshift/openshift.local.config/master/user.htpasswd '#{ENV['OCP_USER']}' '#{ENV['OCP_PASSWORD']}'
-  	mkdir ~/.kube
-  	cp /var/lib/openshift/openshift.local.config/master/admin.kubeconfig ~/.kube/config
-  	oc login -u system:admin -n openshift
-
-	echo "Patching anyuid scc"
-        oc patch scc/anyuid --patch '{"groups":["system:cluster-admins"]}'
+    htpasswd -b /var/lib/openshift/openshift.local.config/master/user.htpasswd '#{ENV['OCP_USER']}' '#{ENV['OCP_PASSWORD']}'
+    mkdir ~/.kube
+    cp /var/lib/openshift/openshift.local.config/master/admin.kubeconfig ~/.kube/config
+    oc login -u system:admin -n openshift
+    oc adm policy add-cluster-role-to-user cluster-admin #{ENV['OCP_USER']}
+    echo "Patching anyuid scc"
+    oc patch scc/anyuid --patch '{"groups":["system:cluster-admins"]}'
   SHELL
 
   config.vm.provision "shell", run: "always", inline: <<-SHELL
@@ -124,26 +124,26 @@ Vagrant.configure(2) do |config|
     echo "Importing Image Streams and Templates"
     echo
     sudo su -
-  	git clone https://github.com/openshift/openshift-ansible
-  	oc create -f openshift-ansible/roles/openshift_examples/files/examples/v1.3/db-templates -n openshift || true
+    git clone https://github.com/openshift/openshift-ansible
+    oc create -f openshift-ansible/roles/openshift_examples/files/examples/v1.3/db-templates -n openshift || true
     oc create -f openshift-ansible/roles/openshift_examples/files/examples/v1.3/image-streams/image-streams-rhel7.json -n openshift || true
-  	oc create -f openshift-ansible/roles/openshift_examples/files/examples/v1.3/quickstart-templates -n openshift || true
-  	oc create -f openshift-ansible/roles/openshift_examples/files/examples/v1.3/xpaas-streams -n openshift || true
-  	oc create -f openshift-ansible/roles/openshift_examples/files/examples/v1.3/xpaas-templates -n openshift || true
-  	oc create -f openshift-ansible/roles/openshift_hosted_templates/files/v1.3/enterprise -n openshift || true 
+    oc create -f openshift-ansible/roles/openshift_examples/files/examples/v1.3/quickstart-templates -n openshift || true
+    oc create -f openshift-ansible/roles/openshift_examples/files/examples/v1.3/xpaas-streams -n openshift || true
+    oc create -f openshift-ansible/roles/openshift_examples/files/examples/v1.3/xpaas-templates -n openshift || true
+    oc create -f openshift-ansible/roles/openshift_hosted_templates/files/v1.3/enterprise -n openshift || true 
   SHELL
   
   # Pull images for CICD namespace
   # What we should be pulling:
-  #  	docker pull openshift3/jenkins-1-rhel7:latest
-  #	    docker pull openshift3/jenkins-slave-maven-rhel7:latest
+  #     docker pull openshift3/jenkins-1-rhel7:latest
+  #     docker pull openshift3/jenkins-slave-maven-rhel7:latest
   config.vm.provision "shell", run: "always", inline: <<-SHELL
-  	echo
-  	echo "Pulling images for CICD Project"
-  	echo
-  	docker pull docker.io/openshift/jenkins-1-centos7:latest
-	docker pull docker.io/openshift/jenkins-slave-maven-centos7:latest
-  	docker pull docker.bintray.io/jfrog/artifactory-oss:latest
+    echo
+    echo "Pulling images for CICD Project"
+    echo
+    docker pull docker.io/openshift/jenkins-1-centos7:latest
+    docker pull docker.io/openshift/jenkins-slave-maven-centos7:latest
+    docker pull docker.bintray.io/jfrog/artifactory-oss:latest
   SHELL
   
   # Provision CICD namespace
@@ -154,7 +154,7 @@ Vagrant.configure(2) do |config|
     oc login -u #{ENV['OCP_USER']} -p #{ENV['OCP_PASSWORD']}
     oc new-project cicd
     oc import-image jenkins-centos --from=docker.io/openshift/jenkins-1-centos7 --insecure=true --confirm
-	oc import-image jenkins-centos-slave --from=docker.io/openshift/jenkins-slave-maven-centos7 --insecure=true --confirm
+    oc import-image jenkins-centos-slave --from=docker.io/openshift/jenkins-slave-maven-centos7 --insecure=true --confirm
     oc import-image artifactory-oss --from=docker.bintray.io/jfrog/artifactory-oss:latest --insecure=true --confirm
   SHELL
   
@@ -165,7 +165,7 @@ Vagrant.configure(2) do |config|
     echo
     oc login -u system:admin
     oc project cicd
-	oc new-app --template=jenkins-persistent -p NAMESPACE=cicd -p JENKINS_IMAGE_STREAM_TAG=jenkins-centos:latest
+    oc new-app --template=jenkins-persistent -p NAMESPACE=cicd -p JENKINS_IMAGE_STREAM_TAG=jenkins-centos:latest
     oc create sa artifactory
     oc project cicd
     oc adm policy add-scc-to-user anyuid -z artifactory
