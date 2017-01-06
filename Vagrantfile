@@ -8,6 +8,7 @@ PUBLIC_ADDRESS="10.1.2.2"
 OCP_USER = ENV['OCP_USER'] || 'user'
 OCP_PASSWORD = ENV['OCP_PASSWORD'] || 'r3dh4t'
 OCP_CICD_PROJECT = ENV['OCP_CICD_PROJECT'] || 'cicd'
+OCP_TZ = ENV['TZ'] || 'Europe/London'
 
 # Number of virtualized CPUs
 VM_CPU = ENV['VM_CPU'] || 2
@@ -81,8 +82,8 @@ Vagrant.configure(2) do |config|
   
   # Fix date/time issues with VM
   config.vm.provision "shell", run: "always", inline: <<-SHELL
-    export TZ='Europe/London'
-    echo "export TZ='Europe/London'" >> ~/.bash_profile
+    export TZ=#{OCP_TZ}
+    echo "export TZ='#{OCP_TZ}'" >> ~/.bash_profile
     yum install -y ntp
     systemctl enable ntpd
     systemctl start ntpd
