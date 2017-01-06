@@ -9,6 +9,7 @@ Define the following environment variables to configure the image:
 
 * OCP_USER - the user we create to carry out the operations. Defaults to 'user'
 * OCP_PASSWORD - the password for the user. Defaults to 'r3dh4t' (obviously).
+* OCP_CICD_PROJECT - the name of the cicd project we want to create. Defaults to 'cicd'.
 
 # What it does
 Assuming you have the latest CDK image from developers.redhat.com, this Vagrantfile will:
