@@ -7,6 +7,7 @@ PUBLIC_ADDRESS="10.1.2.2"
 
 OCP_USER = ENV['OCP_USER'] || 'user'
 OCP_PASSWORD = ENV['OCP_PASSWORD'] || 'r3dh4t'
+OCP_CICD_PROJECT = ENV['OCP_CICD_PROJECT'] || 'cicd'
 
 # Number of virtualized CPUs
 VM_CPU = ENV['VM_CPU'] || 2
@@ -104,11 +105,11 @@ Vagrant.configure(2) do |config|
     echo "Creating user and assigning cluster-admin role"
     echo
     sudo su -
-    htpasswd -b /var/lib/openshift/openshift.local.config/master/user.htpasswd '#{ENV['OCP_USER']}' '#{ENV['OCP_PASSWORD']}'
+    htpasswd -b /var/lib/openshift/openshift.local.config/master/user.htpasswd '#{OCP_USER}' '#{OCP_PASSWORD}'
     mkdir ~/.kube
     cp /var/lib/openshift/openshift.local.config/master/admin.kubeconfig ~/.kube/config
     oc login -u system:admin -n openshift
-    oc adm policy add-cluster-role-to-user cluster-admin #{ENV['OCP_USER']}
+    oc adm policy add-cluster-role-to-user cluster-admin #{OCP_USER}
     echo "Patching anyuid scc"
     oc patch scc/anyuid --patch '{"groups":["system:cluster-admins"]}'
   SHELL
@@ -151,34 +152,24 @@ Vagrant.configure(2) do |config|
     echo
     echo "Creating CI/CD Project"
     echo
-    oc login -u #{ENV['OCP_USER']} -p #{ENV['OCP_PASSWORD']}
-    oc new-project cicd
+    oc login -u #{OCP_USER} -p #{OCP_PASSWORD}
+    oc new-project #{OCP_CICD_PROJECT} --display-name '#{OCP_CICD_PROJECT}' --description 'Continuous Integration and Continuous Delivery tooling'
     oc import-image jenkins-centos --from=docker.io/openshift/jenkins-1-centos7 --insecure=true --confirm
     oc import-image jenkins-centos-slave --from=docker.io/openshift/jenkins-slave-maven-centos7 --insecure=true --confirm
-    oc import-image artifactory-oss --from=docker.bintray.io/jfrog/artifactory-oss:latest --insecure=true --confirm
   SHELL
-  
+
   # Provision CICD Tooling
   config.vm.provision "shell", run: "always", inline: <<-SHELL
     echo
     echo "Provision CI/CD Tooling"
     echo
-    oc login -u system:admin
+    oc login -u #{OCP_USER} -p #{OCP_PASSWORD}
     oc project cicd
-    oc new-app --template=jenkins-persistent -p NAMESPACE=cicd -p JENKINS_IMAGE_STREAM_TAG=jenkins-centos:latest
-    oc create sa artifactory
-    oc project cicd
-    oc adm policy add-scc-to-user anyuid -z artifactory
-    oc new-app cicd/artifactory-oss
-    echo
-    echo "Time for a power nap..."
-    echo
-    sleep 5
-    echo
-    echo "I'm awake!"
-    echo
-    oc patch dc/artifactory-oss --patch '{"spec":{"template":{"spec":{"serviceAccountName": "artifactory"}}}}'
-    oc expose service artifactory-oss
+    oc new-app --template=jenkins-persistent -p NAMESPACE=#{OCP_CICD_PROJECT} -p JENKINS_IMAGE_STREAM_TAG=jenkins-centos:latest
+    oc create -f https://raw.githubusercontent.com/benemon/jfrog-artifactory-ocp/master/artifactory-template.yaml || true
+    oc new-app --template=artifactory-persistent || true
+    oc adm policy add-scc-to-user anyuid -z artifactory-sa
+    oc deploy artifactory --latest
   SHELL
   
   config.vm.provision "shell", run: "always", inline: <<-SHELL
@@ -189,7 +180,13 @@ Vagrant.configure(2) do |config|
     echo "To modify the number of cores and/or available memory set the environment variables"
     echo "VM_CPU and/or VM_MEMORY respectively."
     echo
-    echo "You can now access the OpenShift console on: https://${OSIP}:8443/console"
+    echo "You can now access the OpenShift console on: https://${OS_IP}:8443/console"
+    echo
+    echo "You can access the tooling in the project #{OCP_CICD_PROJECT} on the following URLS: "
+    echo "        Jenkins: `oc get routes -n #{OCP_CICD_PROJECT} | grep jenkins | awk '{print $2}'`"
+    echo "    Artifactory: `oc get routes -n #{OCP_CICD_PROJECT} | grep artifactory | awk '{print $2}'`"
+    echo
+    echo "NOTE: It sometimes takes Artifactory a few minutes to resolve its image from the ImageStream. Please be patient."
     echo
     echo "To download and install OC binary, run:"
     echo "vagrant service-manager install-cli openshift"
@@ -200,7 +197,7 @@ Vagrant.configure(2) do |config|
     echo "Configured users are (<username>/<password>):"
     echo "openshift-dev/devel"
     echo "admin/admin"
-    echo #{ENV['OCP_USER']}/#{ENV['OCP_PASSWORD']}
+    echo #{OCP_USER}/#{OCP_PASSWORD}
     echo
     echo "If you have the oc client library on your host, you can also login from your host."
     echo
