@@ -18,4 +18,6 @@ Assuming you have the latest CDK image from developers.redhat.com, this Vagrantf
 * Enable Tech Preview Build Pipelines out of the box
 * Create a new cluster user
 * Import all the missing xPaaS image streams and templates
-* Create a CICD project, and spin up a Jenkins and an Artifactory instance *(TODO - Provision storage automatically for this)*
+* Create a CICD project, and spin up persistent Jenkins and Artifactory instances.
+
+**NOTE: It sometimes takes Artifactory a few minutes to resolve its image from the ImageStream. Please be patient.**
