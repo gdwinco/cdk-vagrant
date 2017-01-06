@@ -10,11 +10,12 @@ Define the following environment variables to configure the image:
 * OCP_USER - the user we create to carry out the operations. Defaults to 'user'
 * OCP_PASSWORD - the password for the user. Defaults to 'r3dh4t' (obviously).
 * OCP_CICD_PROJECT - the name of the cicd project we want to create. Defaults to 'cicd'.
+* TZ - the time zone we're operating in. Defaults to 'Europe/London'.
 
 # What it does
 Assuming you have the latest CDK image from developers.redhat.com, this Vagrantfile will:
 
-* Fix the fact that the CDK was convinced you lived on the US East Coast
+* Fix the fact that the CDK was convinced you lived on the US East Coast, even if you weren't. Defaults to 'Europe/London' but is configurable (and should take the value of 'TZ' if defined).
 * Remove the anyuid scc from system:authenticated users so the security model behaves more like a full-fat cluster
 * Enable Tech Preview Build Pipelines out of the box
 * Create a new cluster user
